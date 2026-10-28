@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>VNA Document Vault</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="assets/logo.png">
+<style>
+:root{--bg1:#06204f;--bg2:#0b3a8c;--card:rgba(255,255,255,.08);--bd:rgba(255,255,255,.16);--tx:#eef4ff;--mu:#a9bfe6;--ac:#f5b82e;--dg:#ff6b6b;color-scheme:dark}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--tx);background:linear-gradient(160deg,var(--bg1),var(--bg2) 70%) fixed}
+header{display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid var(--bd);background:rgba(4,20,60,.7);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header img{width:52px;height:52px;border-radius:50%;background:#fff}h1{font-size:17px;margin:0}h1 small{display:block;color:var(--mu);font-weight:400;font-size:12px}.sp{flex:1}
+input,select,textarea{background:rgba(255,255,255,.1);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:9px 11px;font:inherit;max-width:100%}option{color:#000}
+button{border:0;border-radius:8px;padding:9px 14px;font:inherit;cursor:pointer;color:var(--tx);background:rgba(255,255,255,.14)}button:hover{background:rgba(255,255,255,.24)}
+button.p{background:var(--ac);color:#102;font-weight:600}button.d{color:var(--dg)}button.s{padding:5px 9px;font-size:13px}
+.wrap{display:grid;grid-template-columns:220px 1fr;gap:16px;padding:16px 18px;max-width:1200px;margin:auto}@media(max-width:760px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+nav button{display:flex;width:100%;justify-content:space-between;background:none;margin-bottom:2px}nav button.on{background:rgba(245,184,46,.2);color:var(--ac)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:12px}.stats b{display:block;font-size:22px;color:var(--ac)}.mu,.stats span{color:var(--mu);font-size:12px}
+.bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.bar input{flex:1;min-width:160px}
+.drop{border:2px dashed var(--bd);border-radius:12px;padding:16px;text-align:center;color:var(--mu);margin-bottom:12px}.drop.h{border-color:var(--ac)}
+.list{overflow-x:auto}table{width:100%;border-collapse:collapse;min-width:620px}th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--bd);font-size:14px}th{color:var(--mu);font-size:12px;font-weight:500}
+.tag{background:rgba(61,165,255,.22);border-radius:99px;padding:1px 8px;font-size:11px;margin-right:3px}
+dialog{background:#0a2a6b;color:var(--tx);border:1px solid var(--bd);border-radius:14px;width:min(760px,94vw);padding:16px}dialog::backdrop{background:rgba(0,10,40,.7)}
+label{display:block;font-size:12px;color:var(--mu);margin:8px 0 3px}dialog input,dialog select,dialog textarea{width:100%}
+.pv{max-height:60vh;overflow:auto;background:rgba(0,0,0,.25);border-radius:8px;padding:8px;margin:8px 0}.pv img{max-width:100%}.pv iframe{width:100%;height:55vh;border:0;background:#fff}.pv pre{white-space:pre-wrap;margin:0}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+#login{max-width:360px;margin:12vh auto;text-align:center}#login input{width:100%;margin:6px 0}
+#toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:var(--ac);color:#102;padding:8px 16px;border-radius:99px;display:none;z-index:9}
+</style></head><body>
+<header><img src="assets/logo.png" alt="Veterans of the Nation Association logo"><h1>Veterans of the Nation Association<small>Document Vault · secure cloud records</small></h1><div class="sp"></div>
+<span class="mu" id="who"></span><button class="p" id="newBtn" hidden>+ New note</button><button class="p" id="upBtn" hidden>⬆ Upload</button><button id="out" hidden>Sign out</button></header>
+<div id="login" class="card"><img src="assets/logo.png" width="90" alt="" style="border-radius:50%;background:#fff"><h2>Members sign in</h2>
+<input id="em" type="email" placeholder="Email" autocomplete="username"><input id="pw" type="password" placeholder="Password" autocomplete="current-password"><button class="p" id="in" style="width:100%">Sign in</button><p class="mu" id="lm"></p></div>
+<div class="wrap" id="app" hidden><aside><div class="card"><nav id="cats"></nav><hr style="border:0;border-top:1px solid var(--bd)"><button class="s" id="exp" style="width:100%">⬇ Export index (JSON)</button></div></aside>
+<main><div class="stats card" id="stats"></div><div class="drop" id="drop">Drag &amp; drop files here, or use Upload (20 MB max each)</div>
+<div class="bar"><input type="search" id="q" placeholder="Search name, tag, description…"><select id="sort"><option value="u">Newest</option><option value="n">Name A–Z</option><option value="s">Largest</option></select></div>
+<div class="card list"><table><thead><tr><th></th><th>Name</th><th>Category</th><th>Size</th><th>Updated</th><th>Actions</th></tr></thead><tbody id="rows"></tbody></table><p class="mu" id="empty" style="text-align:center"></p></div></main></div>
+<input type="file" id="file" multiple hidden><dialog id="dlg"><div id="dbody"></div></dialog><div id="toast"></div>
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const C=window.VNA_CONFIG,sb=supabase.createClient(C.SUPABASE_URL,C.SUPABASE_ANON_KEY),B=C.BUCKET||"vault",T="documents";
+const CATS=["Membership","Meetings & Minutes","Finance","Legal & Policy","Welfare & Support","Events","Correspondence","Other"];
+let docs=[],cat="All",qs="",admin=false;const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const toast=m=>{const t=$("#toast");t.textContent=m;t.style.display="block";setTimeout(()=>t.style.display="none",3000)};
+const fmt=n=>n<1024?n+" B":n<1048576?(n/1024).toFixed(1)+" KB":(n/1048576).toFixed(1)+" MB";
+const icon=d=>d.kind==="note"?"📝":/image/.test(d.mime)?"🖼️":/pdf/.test(d.mime)?"📕":/sheet|excel|csv/.test(d.mime)?"📊":/word|document/.test(d.mime)?"📄":"📁";
+async function boot(){const{data:{session}}=await sb.auth.getSession();if(!session){$("#login").hidden=false;$("#app").hidden=true;return}
+ const{data:m}=await sb.from("members").select("role").eq("user_id",session.user.id).maybeSingle();
+ if(!m){$("#login").hidden=false;$("#lm").textContent="Signed in, but this account has not been approved by an administrator yet.";await sb.auth.signOut();return}
+ admin=m.role==="admin";$("#login").hidden=true;$("#app").hidden=false;["newBtn","upBtn","out"].forEach(i=>$("#"+i).hidden=false);$("#who").textContent=session.user.email+(admin?" (admin)":"");load()}
+async function load(){const{data,error}=await sb.from(T).select("*").order("updated_at",{ascending:false});if(error)return toast(error.message);docs=data;render()}
+$("#in").onclick=async()=>{const{error}=await sb.auth.signInWithPassword({email:$("#em").value.trim(),password:$("#pw").value});$("#lm").textContent=error?error.message:"";if(!error)boot()};
+$("#out").onclick=async()=>{await sb.auth.signOut();location.reload()};
+function render(){$("#cats").innerHTML=["All",...CATS].map(c=>`<button class="${c===cat?"on":""}" data-c="${esc(c)}"><span>${esc(c)}</span><span class="mu">${c==="All"?docs.length:docs.filter(d=>d.category===c).length}</span></button>`).join("");
+ $("#cats").querySelectorAll("button").forEach(b=>b.onclick=()=>{cat=b.dataset.c;render()});
+ $("#stats").innerHTML=`<div><b>${docs.length}</b><span>Documents</span></div><div><b>${fmt(docs.reduce((a,d)=>a+(+d.size||0),0))}</b><span>Storage used (free plan: 1 GB)</span></div><div><b>${docs.filter(d=>d.kind==="note").length}</b><span>Notes</span></div><div><b>${docs.filter(d=>d.fav).length}</b><span>Starred</span></div>`;
+ let v=docs.filter(d=>(cat==="All"||d.category===cat)&&(!qs||(d.name+" "+d.tags+" "+d.description).toLowerCase().includes(qs)));const s=$("#sort").value;
+ v.sort((a,b)=>s==="n"?a.name.localeCompare(b.name):s==="s"?b.size-a.size:new Date(b.updated_at)-new Date(a.updated_at));
+ $("#empty").textContent=v.length?"":"No documents here yet.";
+ $("#rows").innerHTML=v.map(d=>`<tr><td>${icon(d)}</td><td><b>${esc(d.name)}</b> ${d.fav?"⭐":""}<br>${(d.tags||"").split(",").filter(x=>x.trim()).map(t=>`<span class="tag">${esc(t.trim())}</span>`).join("")}</td><td>${esc(d.category)}</td><td>${fmt(+d.size||0)}</td><td class="mu">${new Date(d.updated_at).toLocaleDateString()}</td><td><button class="s" data-a="open" data-i="${d.id}">Open</button> <button class="s" data-a="dl" data-i="${d.id}">⬇</button> <button class="s" data-a="edit" data-i="${d.id}">Edit</button> <button class="s" data-a="fav" data-i="${d.id}">★</button></td></tr>`).join("");
+ $("#rows").querySelectorAll("button").forEach(b=>b.onclick=()=>act(b.dataset.a,docs.find(d=>d.id===b.dataset.i)))}
+$("#q").oninput=e=>{qs=e.target.value.toLowerCase();render()};$("#sort").onchange=render;
+$("#upBtn").onclick=()=>$("#file").click();$("#file").onchange=e=>upload([...e.target.files]);
+const dr=$("#drop");["dragover","dragenter"].forEach(t=>dr.addEventListener(t,e=>{e.preventDefault();dr.classList.add("h")}));["dragleave","drop"].forEach(t=>dr.addEventListener(t,e=>{e.preventDefault();dr.classList.remove("h")}));dr.addEventListener("drop",e=>upload([...e.dataTransfer.files]));
+async function upload(fs){for(const f of fs){toast("Uploading "+f.name+"…");const path=`${new Date().getFullYear()}/${Date.now()}-${f.name.replace(/[^\w.\-]+/g,"_")}`;
+ const u=await sb.storage.from(B).upload(path,f,{contentType:f.type||"application/octet-stream"});if(u.error){toast(u.error.message);continue}
+ const r=await sb.from(T).insert({name:f.name,kind:"file",mime:f.type,size:f.size,path,category:cat==="All"?"Other":cat});if(r.error){await sb.storage.from(B).remove([path]);toast(r.error.message)}}
+ $("#file").value="";load()}
+const dlg=$("#dlg");function show(h){$("#dbody").innerHTML=h;if(!dlg.open)dlg.showModal();$("#dbody").querySelectorAll("[data-x]").forEach(b=>b.onclick=()=>dlg.close())}
+const signed=async(d,dl)=>{const{data,error}=await sb.storage.from(B).createSignedUrl(d.path,300,dl?{download:d.name}:undefined);if(error)throw error;return data.signedUrl};
+async function act(a,d){if(!d)return;
+ if(a==="fav"){await sb.from(T).update({fav:!d.fav}).eq("id",d.id);return load()}
+ if(a==="dl"){try{if(d.kind==="note"){const x=document.createElement("a");x.href=URL.createObjectURL(new Blob([d.body||""],{type:"text/plain"}));x.download=d.name+".txt";x.click()}else location.href=await signed(d,true)}catch(e){toast(e.message)}return}
+ if(a==="open"){let pv="";try{if(d.kind==="note")pv=`<pre>${esc(d.body)}</pre>`;else{const u=await signed(d);
+  pv=/^image/.test(d.mime)?`<img src="${esc(u)}" alt="">`:/pdf/.test(d.mime)?`<iframe src="${esc(u)}"></iframe>`:/^text|json|csv/.test(d.mime)?`<pre>${esc(await (await fetch(u)).text())}</pre>`:`<p class="mu">No preview for this type. Use download.</p>`}}catch(e){pv=esc(e.message)}
+  show(`<h3 style="margin:0">${icon(d)} ${esc(d.name)}</h3><div class="mu">${esc(d.category)} · ${fmt(+d.size||0)} · added ${new Date(d.created_at).toLocaleString()}</div><p>${esc(d.description)}</p><div class="pv">${pv}</div><div class="row"><button class="p" id="dd">⬇ Download</button><button data-x>Close</button></div>`);$("#dd").onclick=()=>act("dl",d);return}
+ if(a==="edit")form(d)}
+function form(d){const n=!d;d=d||{name:"",kind:"note",category:cat==="All"?"Other":cat,tags:"",description:"",body:""};
+ show(`<h3 style="margin:0">${n?"New note":"Edit document"}</h3><label>Name</label><input id="fn" value="${esc(d.name)}"><label>Category</label><select id="fc">${CATS.map(c=>`<option ${c===d.category?"selected":""}>${esc(c)}</option>`).join("")}</select><label>Tags (comma separated)</label><input id="ft" value="${esc(d.tags)}"><label>Description</label><input id="fd" value="${esc(d.description)}">${d.kind==="note"?`<label>Content</label><textarea id="fx" rows="10">${esc(d.body)}</textarea>`:""}<div class="row"><button class="p" id="sv">Save</button>${!n&&admin?`<button class="d" id="rm">Delete</button>`:""}<button data-x>Cancel</button></div>`);
+ $("#sv").onclick=async()=>{const name=$("#fn").value.trim();if(!name)return toast("Name required");const p={name,category:$("#fc").value,tags:$("#ft").value,description:$("#fd").value,updated_at:new Date().toISOString()};
+  if(d.kind==="note"){p.body=$("#fx").value;p.size=new Blob([p.body]).size}
+  const r=n?await sb.from(T).insert({...p,kind:"note",mime:"text/plain"}):await sb.from(T).update(p).eq("id",d.id);if(r.error)return toast(r.error.message);dlg.close();load()};
+ if(!n&&admin)$("#rm").onclick=async()=>{if(!confirm("Delete permanently?"))return;if(d.path)await sb.storage.from(B).remove([d.path]);const r=await sb.from(T).delete().eq("id",d.id);if(r.error)return toast(r.error.message);dlg.close();load()}}
+$("#newBtn").onclick=()=>form();
+$("#exp").onclick=()=>{const x=document.createElement("a");x.href=URL.createObjectURL(new Blob([JSON.stringify(docs,null,2)],{type:"application/json"}));x.download="vna-vault-index.json";x.click()};
+boot();
+</script></body></html>
